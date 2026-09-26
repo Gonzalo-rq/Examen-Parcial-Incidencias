@@ -1,8 +1,81 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Inicio - Plataforma de Incidencias";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container py-4">
+    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm border text-center">
+        <h1 class="display-5 fw-bold text-primary">Plataforma de Incidencias Operativas (EcoBici)</h1>
+        <p class="fs-5 text-muted col-md-10 mx-auto">
+            Sistema de monitoreo y resolución de averías en estaciones de bicicletas compartidas.
+            Integra búsqueda inteligente en servidor con <strong>Algolia</strong>, caché de alta velocidad con <strong>Redis</strong>
+            y actualización en vivo bidireccional con <strong>PieHost WebSockets</strong>.
+        </p>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <a asp-controller="Operaciones" asp-action="Incidencias" class="btn btn-primary btn-lg px-4 shadow-sm">
+                🚴 Ver Incidencias Abiertas
+            </a>
+            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-secondary btn-lg px-4">
+                🔑 Iniciar Sesión
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- Tarjeta de Credenciales de Prueba -->
+        <div class="col-lg-6 col-md-8">
+            <div class="card border-primary shadow-sm h-100">
+                <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between py-3">
+                    <h5 class="mb-0">🔐 Credenciales de Acceso para Evaluación</h5>
+                    <span class="badge bg-light text-primary">Docente / Supervisor</span>
+                </div>
+                <div class="card-body p-4">
+                    <p class="card-text text-muted mb-3">
+                        Utilice las siguientes credenciales preconfiguradas para acceder a la plataforma con el rol de <strong>Supervisor</strong>:
+                    </p>
+                    <div class="bg-light p-3 rounded border mb-3">
+                        <div class="row mb-2">
+                            <div class="col-sm-4 text-muted"><strong>Correo / Usuario:</strong></div>
+                            <div class="col-sm-8"><code class="fs-6 user-select-all">supervisor@bicis.com</code></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4 text-muted"><strong>Contraseña:</strong></div>
+                            <div class="col-sm-8"><code class="fs-6 user-select-all">Supervisor123!</code></div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info py-2 px-3 small mb-0">
+                        ℹ️ El usuario se genera y autentica automáticamente a través de <strong>ASP.NET Core Identity</strong> sobre base de datos SQLite.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Servicios Integrados -->
+        <div class="col-lg-6 col-md-8">
+            <div class="card border-secondary shadow-sm h-100">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="mb-0">⚙️ Servicios y Arquitectura Evaluada</h5>
+                </div>
+                <div class="card-body p-4">
+                    <ul class="list-group list-group-flush mb-0">
+                        <li class="list-group-item d-flex align-items-center justify-content-between px-0">
+                            <span>🔍 <strong>Búsqueda Algolia:</strong> Búsqueda en servidor y filtrado de abiertas.</span>
+                            <span class="badge bg-success">Activo</span>
+                        </li>
+                        <li class="list-group-item d-flex align-items-center justify-content-between px-0">
+                            <span>⚡ <strong>Caché Redis:</strong> Listado general con TTL 60s e invalidación al cerrar.</span>
+                            <span class="badge bg-success">Activo</span>
+                        </li>
+                        <li class="list-group-item d-flex align-items-center justify-content-between px-0">
+                            <span>📡 <strong>PieHost WebSocket:</strong> Sincronización en tiempo real sin recarga.</span>
+                            <span class="badge bg-success">Activo</span>
+                        </li>
+                        <li class="list-group-item d-flex align-items-center justify-content-between px-0">
+                            <span>💾 <strong>EF Core + SQLite:</strong> Persistencia local con semilla de datos.</span>
+                            <span class="badge bg-success">Activo</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
