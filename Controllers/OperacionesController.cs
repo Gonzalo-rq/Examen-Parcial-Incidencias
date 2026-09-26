@@ -1,29 +1,52 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IncidenciasApp.Data;
+using IncidenciasApp.Services;
 
 namespace IncidenciasApp.Controllers;
 
 public class OperacionesController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly IAlgoliaSearchService _algoliaSearchService;
     private readonly ILogger<OperacionesController> _logger;
 
-    public OperacionesController(ApplicationDbContext context, ILogger<OperacionesController> logger)
+    public OperacionesController(
+        ApplicationDbContext context, 
+        IAlgoliaSearchService algoliaSearchService,
+        ILogger<OperacionesController> logger)
     {
         _context = context;
+        _algoliaSearchService = algoliaSearchService;
         _logger = logger;
     }
 
-    // GET: /Operaciones/Incidencias
-    public async Task<IActionResult> Incidencias()
+    // GET: /Operaciones/Incidencias?q=frenos
+    public async Task<IActionResult> Incidencias(string? q)
     {
-        var incidencias = await _context.Incidencias
-            .Where(i => i.Estado == "Abierta")
+        ViewBag.Query = q ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(q))
+        {
+            // Con búsqueda vacía, presentar la lista habitual
+            var todasAbiertas = await _context.Incidencias
+                .Where(i => i.Estado == "Abierta")
+                .OrderByDescending(i => i.FechaReporte)
+                .ToListAsync();
+
+            return View(todasAbiertas);
+        }
+
+        // Búsqueda con Algolia en servidor
+        var matchIds = await _algoliaSearchService.BuscarIdsIncidenciasAsync(q);
+
+        // El servidor consulta Algolia y muestra solo incidencias abiertas existentes en la base
+        var resultados = await _context.Incidencias
+            .Where(i => matchIds.Contains(i.Id) && i.Estado == "Abierta")
             .OrderByDescending(i => i.FechaReporte)
             .ToListAsync();
 
-        return View(incidencias);
+        return View(resultados);
     }
 
     // POST: /Operaciones/Cerrar/5
