@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IncidenciasApp.Data;
@@ -6,6 +7,7 @@ using IncidenciasApp.Services;
 
 namespace IncidenciasApp.Controllers;
 
+[Authorize]
 public class OperacionesController : Controller
 {
     private readonly ApplicationDbContext _context;
