@@ -18,6 +18,10 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddControllersWithViews();
+
+// Servicios integrados: Redis Cache, Algolia Search y PieHost WebSockets
+builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
+builder.Services.AddSingleton<IAlgoliaSearchService, AlgoliaSearchService>();
 builder.Services.AddSingleton<IPieHostWebSocketService, PieHostWebSocketService>();
 
 var app = builder.Build();
