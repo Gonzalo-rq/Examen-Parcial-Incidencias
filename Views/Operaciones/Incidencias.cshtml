@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Incidencias Operativas";
     string fuente = ViewBag.FuenteDatos as string ?? "Base de Datos";
+    string currentQuery = ViewBag.Query as string ?? "";
 }
 
 <div class="container mt-4">
@@ -11,6 +12,33 @@
         <span class="badge bg-primary fs-6 py-2 px-3">
             ⚡ @fuente
         </span>
+    </div>
+
+    <!-- Buscador Algolia en servidor -->
+    <div class="card mb-4 shadow-sm border-0 bg-light">
+        <div class="card-body">
+            <form method="get" asp-action="Incidencias" class="row g-2 align-items-center">
+                <div class="col-md-9 col-sm-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">🔍</span>
+                        <input type="text" name="q" value="@currentQuery" class="form-control" placeholder="Buscar por estación o descripción (ej: Frenos, Miraflores, GPS)..." />
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">Buscar (Algolia)</button>
+                    @if (!string.IsNullOrEmpty(currentQuery))
+                    {
+                        <a asp-action="Incidencias" class="btn btn-outline-secondary">Limpiar</a>
+                    }
+                </div>
+            </form>
+            @if (!string.IsNullOrEmpty(currentQuery))
+            {
+                <div class="mt-2 text-muted small">
+                    Resultados para: <strong>"@currentQuery"</strong> (@Model.Count() encontrados)
+                </div>
+            }
+        </div>
     </div>
 
     @if (!Model.Any())

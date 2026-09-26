@@ -10,38 +10,57 @@ public class OperacionesController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly IRedisCacheService _cacheService;
+    private readonly IAlgoliaSearchService _algoliaSearchService;
     private readonly ILogger<OperacionesController> _logger;
 
     public OperacionesController(
         ApplicationDbContext context,
         IRedisCacheService cacheService,
+        IAlgoliaSearchService algoliaSearchService,
         ILogger<OperacionesController> logger)
     {
         _context = context;
         _cacheService = cacheService;
+        _algoliaSearchService = algoliaSearchService;
         _logger = logger;
     }
 
-    // GET: /Operaciones/Incidencias
-    public async Task<IActionResult> Incidencias()
+    // GET: /Operaciones/Incidencias?q=frenos
+    public async Task<IActionResult> Incidencias(string? q)
     {
-        // Intentar leer de Redis Cache (60 segundos)
+        ViewBag.Query = q ?? string.Empty;
+
+        // Si hay búsqueda de texto con Algolia: consultar directamente sin usar caché de Redis
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            _logger.LogInformation("Consulta directa a Algolia con query '{Query}' (sin pasar por caché Redis).", q);
+            var matchIds = await _algoliaSearchService.BuscarIdsIncidenciasAsync(q);
+
+            var resultados = await _context.Incidencias
+                .Where(i => matchIds.Contains(i.Id) && i.Estado == "Abierta")
+                .OrderByDescending(i => i.FechaReporte)
+                .ToListAsync();
+
+            ViewBag.FuenteDatos = "Búsqueda Algolia (Directa sin Caché)";
+            return View(resultados);
+        }
+
+        // Listado general (búsqueda vacía): cachear por 60 segundos con Redis
         var cachedIncidencias = await _cacheService.GetIncidenciasAbiertasCacheAsync();
         if (cachedIncidencias != null)
         {
-            _logger.LogInformation("Lectura exitosa desde REDIS: {Count} incidencias abiertas.", cachedIncidencias.Count);
+            _logger.LogInformation("[REDIS HIT] Listado general obtenido de Redis Cache: {Count} incidencias.", cachedIncidencias.Count);
             ViewBag.FuenteDatos = "Redis Cache (Rápida - 60s)";
             return View(cachedIncidencias);
         }
 
-        // Si no está en caché (Cache Miss), consultar la Base de Datos SQLite
-        _logger.LogInformation("Lectura desde BASE DE DATOS (SQLite) para incidencias abiertas.");
+        // Cache Miss: consultar de SQLite y guardar en Redis por 60 segundos
+        _logger.LogInformation("[DATABASE HIT / CACHE MISS] Listado general consultado de SQLite.");
         var incidencias = await _context.Incidencias
             .Where(i => i.Estado == "Abierta")
             .OrderByDescending(i => i.FechaReporte)
             .ToListAsync();
 
-        // Guardar en Redis por 60 segundos
         await _cacheService.SetIncidenciasAbiertasCacheAsync(incidencias, TimeSpan.FromSeconds(60));
         ViewBag.FuenteDatos = "Base de Datos SQLite (Guardada en Caché)";
 

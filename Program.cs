@@ -19,6 +19,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
+builder.Services.AddSingleton<IAlgoliaSearchService, AlgoliaSearchService>();
 
 var app = builder.Build();
 
