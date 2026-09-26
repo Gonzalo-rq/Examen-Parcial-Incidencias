@@ -2,12 +2,16 @@
 
 @{
     ViewData["Title"] = "Incidencias Operativas";
+    string fuente = ViewBag.FuenteDatos as string ?? "Base de Datos";
     string currentQuery = ViewBag.Query as string ?? "";
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>Incidencias abiertas encontradas</h1>
+        <h1>Incidencias abiertas con consulta rápida</h1>
+        <span class="badge bg-primary fs-6 py-2 px-3">
+            ⚡ @fuente
+        </span>
     </div>
 
     <!-- Buscador Algolia en servidor -->
