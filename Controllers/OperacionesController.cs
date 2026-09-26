@@ -1,0 +1,44 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using IncidenciasApp.Data;
+
+namespace IncidenciasApp.Controllers;
+
+public class OperacionesController : Controller
+{
+    private readonly ApplicationDbContext _context;
+    private readonly ILogger<OperacionesController> _logger;
+
+    public OperacionesController(ApplicationDbContext context, ILogger<OperacionesController> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+
+    // GET: /Operaciones/Incidencias
+    public async Task<IActionResult> Incidencias()
+    {
+        var incidencias = await _context.Incidencias
+            .Where(i => i.Estado == "Abierta")
+            .OrderByDescending(i => i.FechaReporte)
+            .ToListAsync();
+
+        return View(incidencias);
+    }
+
+    // POST: /Operaciones/Cerrar/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cerrar(int id)
+    {
+        var incidencia = await _context.Incidencias.FindAsync(id);
+        if (incidencia != null && incidencia.Estado == "Abierta")
+        {
+            incidencia.Estado = "Cerrada";
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Incidencia {Id} cerrada en la base de datos.", id);
+        }
+
+        return RedirectToAction(nameof(Incidencias));
+    }
+}

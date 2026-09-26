@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: incidencias-app
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: Data Source=/data/app.db;Cache=Shared
+      - key: Redis__ConnectionString
+        value: superglossy-hobbies-tangerine-38114.db.redis.io:13512,password=T2bE8h7rXhekGlsrqFxHv2CYMMrKf0M7,user=default,ssl=False,abortConnect=false
+      - key: Algolia__ApplicationId
+        value: CBBGMIXT8X
+      - key: Algolia__SearchApiKey
+        value: ed33f483bd657736bc421f094c2d5ee1
+      - key: Algolia__WriteApiKey
+        value: 31dc11e700a57fe749cc311b0abdca87
+      - key: Algolia__IndexName
+        value: incidencias
+      - key: PieHost__ClusterId
+        value: free.blr2
+      - key: PieHost__ApiKey
+        value: f2X1bR8OHdxfU5blSBwspk25q3otbhOTtfbHAWMh
+      - key: PieHost__ApiSecret
+        value: fYqXwNjGQfOGnuevoOMmNFgKDkSU6Qg
+      - key: PieHost__ChannelId
+        value: "1"

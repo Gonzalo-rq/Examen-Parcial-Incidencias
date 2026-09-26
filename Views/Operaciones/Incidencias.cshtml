@@ -1,0 +1,69 @@
+@model IEnumerable<IncidenciasApp.Models.Incidencia>
+
+@{
+    ViewData["Title"] = "Incidencias Operativas";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Incidencias abiertas</h1>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            No se encontraron incidencias abiertas en el sistema.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-hover table-striped align-middle mb-0 bg-white">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 5%;">ID</th>
+                        <th style="width: 25%;">Estación</th>
+                        <th style="width: 35%;">Descripción</th>
+                        <th style="width: 10%;">Prioridad</th>
+                        <th style="width: 10%;">Estado</th>
+                        <th style="width: 15%;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-incidencias-body">
+                    @foreach (var item in Model)
+                    {
+                        <tr id="fila-incidencia-@item.Id">
+                            <td><strong>#@item.Id</strong></td>
+                            <td>@item.Estacion</td>
+                            <td>@item.Descripcion</td>
+                            <td>
+                                @if (item.Prioridad == "Alta")
+                                {
+                                    <span class="badge bg-danger">Alta</span>
+                                }
+                                else if (item.Prioridad == "Media")
+                                {
+                                    <span class="badge bg-warning text-dark">Media</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info text-dark">Baja</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-success" id="estado-badge-@item.Id">@item.Estado</span>
+                            </td>
+                            <td>
+                                <form asp-action="Cerrar" asp-route-id="@item.Id" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Seguro que deseas cerrar la incidencia #@item.Id?');">
+                                        Cerrar Incidencia
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
