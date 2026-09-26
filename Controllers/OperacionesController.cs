@@ -11,17 +11,20 @@ public class OperacionesController : Controller
     private readonly ApplicationDbContext _context;
     private readonly IRedisCacheService _cacheService;
     private readonly IAlgoliaSearchService _algoliaSearchService;
+    private readonly IPieHostWebSocketService _webSocketService;
     private readonly ILogger<OperacionesController> _logger;
 
     public OperacionesController(
         ApplicationDbContext context,
         IRedisCacheService cacheService,
         IAlgoliaSearchService algoliaSearchService,
+        IPieHostWebSocketService webSocketService,
         ILogger<OperacionesController> logger)
     {
         _context = context;
         _cacheService = cacheService;
         _algoliaSearchService = algoliaSearchService;
+        _webSocketService = webSocketService;
         _logger = logger;
     }
 
@@ -67,7 +70,20 @@ public class OperacionesController : Controller
         return View(incidencias);
     }
 
+    // GET: /Operaciones/EstadoVigente (para consultar estado vigente al reconectar WebSocket)
+    [HttpGet]
+    public async Task<IActionResult> EstadoVigente()
+    {
+        var vigentes = await _context.Incidencias
+            .Where(i => i.Estado == "Abierta")
+            .OrderByDescending(i => i.FechaReporte)
+            .ToListAsync();
+
+        return Json(vigentes);
+    }
+
     // POST: /Operaciones/Cerrar/5
+    // Secuencia obligatoria: 1. Cierre en base -> 2. Invalidación de Redis -> 3. Publicación por PieHost
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cerrar(int id)
@@ -75,12 +91,18 @@ public class OperacionesController : Controller
         var incidencia = await _context.Incidencias.FindAsync(id);
         if (incidencia != null && incidencia.Estado == "Abierta")
         {
+            // 1. Cierre en base de datos
             incidencia.Estado = "Cerrada";
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Incidencia {Id} cerrada en la base de datos.", id);
+            _logger.LogInformation("Paso 1: Incidencia {Id} cerrada en la base de datos.", id);
 
-            // Al cerrar una incidencia, invalidar la clave del listado antes de volver a consultarlo
+            // 2. Invalidación de Redis
             await _cacheService.InvalidateIncidenciasAbiertasCacheAsync();
+            _logger.LogInformation("Paso 2: Clave de Redis invalidada.");
+
+            // 3. Publicación por PieHost
+            await _webSocketService.PublicarIncidenciaActualizadaAsync(id, "Cerrada");
+            _logger.LogInformation("Paso 3: Evento IncidenciaActualizada publicado por PieHost.");
         }
 
         return RedirectToAction(nameof(Incidencias));
