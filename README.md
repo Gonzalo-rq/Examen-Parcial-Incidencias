@@ -79,34 +79,6 @@ El siguiente diagrama de árbol demuestra que las tres ramas nacen del mismo anc
 
 ---
 
-## 🚀 Despliegue en Render.com (Guía Paso a Paso)
-
-El proyecto incluye `Dockerfile` optimizado con .NET 9 y `render.yaml`. Para desplegarlo manualmente:
-
-1. Ingresa a [dashboard.render.com](https://dashboard.render.com/) y haz clic en **New +** -> **Web Service**.
-2. Conecta tu cuenta de GitHub y selecciona el repositorio:
-   `https://github.com/Gonzalo-rq/Examen-Parcial-Incidencias`
-3. Configuración del servicio:
-   - **Name**: `incidencias-app`
-   - **Branch**: `main`
-   - **Runtime**: `Docker` (seleccionará automáticamente el `Dockerfile` del repositorio).
-   - **Instance Type**: `Free`.
-4. En **Environment Variables**, agrega las siguientes claves (sin comillas):
-   - `ASPNETCORE_ENVIRONMENT` = `Production`
-   - `ConnectionStrings__DefaultConnection` = `Data Source=/data/app.db;Cache=Shared`
-   - `Redis__ConnectionString` = `superglossy-hobbies-tangerine-38114.db.redis.io:13512,password=T2bE8h7rXhekGlsrqFxHv2CYMMrKf0M7,user=default,ssl=False,abortConnect=false`
-   - `Algolia__ApplicationId` = `CBBGMIXT8X`
-   - `Algolia__SearchApiKey` = `ed33f483bd657736bc421f094c2d5ee1`
-   - `Algolia__WriteApiKey` = `31dc11e700a57fe749cc311b0abdca87`
-   - `Algolia__IndexName` = `incidencias`
-   - `PieHost__ClusterId` = `free.blr2`
-   - `PieHost__ApiKey` = `f2X1bR8OHdxfU5blSBwspk25q3otbhOTtfbHAWMh`
-   - `PieHost__ApiSecret` = `fYqXwNjGQfOGnuevoOMmNFgKDkSU6Qg`
-   - `PieHost__ChannelId` = `1`
-5. Haz clic en **Create Web Service**.
-6. Render construirá la imagen Docker e iniciará la aplicación en el puerto asignado dinámicamente (`PORT`).
-
----
 
 ## 🧪 Guía de Pruebas y Demostración
 
