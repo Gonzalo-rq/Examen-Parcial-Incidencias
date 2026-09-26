@@ -6,64 +6,218 @@
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>Incidencias abiertas</h1>
+        <h1>Incidencias abiertas en tiempo real</h1>
+        <span id="ws-status-badge" class="badge bg-secondary fs-6 py-2 px-3">
+            ⚪ Conectando a PieHost...
+        </span>
     </div>
 
-    @if (!Model.Any())
-    {
-        <div class="alert alert-info">
-            No se encontraron incidencias abiertas en el sistema.
-        </div>
-    }
-    else
-    {
-        <div class="table-responsive shadow-sm rounded">
-            <table class="table table-hover table-striped align-middle mb-0 bg-white">
-                <thead class="table-dark">
-                    <tr>
-                        <th style="width: 5%;">ID</th>
-                        <th style="width: 25%;">Estación</th>
-                        <th style="width: 35%;">Descripción</th>
-                        <th style="width: 10%;">Prioridad</th>
-                        <th style="width: 10%;">Estado</th>
-                        <th style="width: 15%;">Acción</th>
+    <!-- Contenedor de notificaciones en tiempo real -->
+    <div id="live-notification-area"></div>
+
+    <div id="no-incidencias-alert" class="alert alert-info @(Model.Any() ? "d-none" : "")">
+        No se encontraron incidencias abiertas en el sistema.
+    </div>
+
+    <div class="table-responsive shadow-sm rounded @(!Model.Any() ? "d-none" : "")" id="tabla-contenedor">
+        <table class="table table-hover table-striped align-middle mb-0 bg-white">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 5%;">ID</th>
+                    <th style="width: 25%;">Estación</th>
+                    <th style="width: 35%;">Descripción</th>
+                    <th style="width: 10%;">Prioridad</th>
+                    <th style="width: 10%;">Estado</th>
+                    <th style="width: 15%;">Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-incidencias-body">
+                @foreach (var item in Model)
+                {
+                    <tr id="fila-incidencia-@item.Id">
+                        <td><strong>#@item.Id</strong></td>
+                        <td>@item.Estacion</td>
+                        <td>@item.Descripcion</td>
+                        <td>
+                            @if (item.Prioridad == "Alta")
+                            {
+                                <span class="badge bg-danger">Alta</span>
+                            }
+                            else if (item.Prioridad == "Media")
+                            {
+                                <span class="badge bg-warning text-dark">Media</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info text-dark">Baja</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge bg-success" id="estado-badge-@item.Id">@item.Estado</span>
+                        </td>
+                        <td>
+                            <form asp-action="Cerrar" asp-route-id="@item.Id" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Seguro que deseas cerrar la incidencia #@item.Id?');">
+                                    Cerrar Incidencia
+                                </button>
+                            </form>
+                        </td>
                     </tr>
-                </thead>
-                <tbody id="tabla-incidencias-body">
-                    @foreach (var item in Model)
-                    {
-                        <tr id="fila-incidencia-@item.Id">
-                            <td><strong>#@item.Id</strong></td>
-                            <td>@item.Estacion</td>
-                            <td>@item.Descripcion</td>
-                            <td>
-                                @if (item.Prioridad == "Alta")
-                                {
-                                    <span class="badge bg-danger">Alta</span>
-                                }
-                                else if (item.Prioridad == "Media")
-                                {
-                                    <span class="badge bg-warning text-dark">Media</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-info text-dark">Baja</span>
-                                }
-                            </td>
-                            <td>
-                                <span class="badge bg-success" id="estado-badge-@item.Id">@item.Estado</span>
-                            </td>
-                            <td>
-                                <form asp-action="Cerrar" asp-route-id="@item.Id" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Seguro que deseas cerrar la incidencia #@item.Id?');">
-                                        Cerrar Incidencia
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+@section Scripts {
+<script>
+    (function () {
+        const wsUrl = "wss://free.blr2.piesocket.com/v3/1?api_key=f2X1bR8OHdxfU5blSBwspk25q3otbhOTtfbHAWMh&notify_self=1";
+        const badge = document.getElementById("ws-status-badge");
+        const notifArea = document.getElementById("live-notification-area");
+        let ws;
+        let isReconnecting = false;
+
+        function conectarWebSocket() {
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = function () {
+                    badge.className = "badge bg-success fs-6 py-2 px-3";
+                    badge.innerText = "🟢 PieHost WebSocket: Conectado";
+
+                    if (isReconnecting) {
+                        // Al reconectar, consultar el estado vigente
+                        consultarEstadoVigente();
+                        isReconnecting = false;
+                    }
+                };
+
+                ws.onmessage = function (event) {
+                    try {
+                        const parsed = JSON.parse(event.data);
+                        let evData = parsed;
+                        
+                        if (parsed.event === "IncidenciaActualizada") {
+                            evData = parsed.data;
+                        }
+
+                        if (evData && evData.Id && evData.Estado === "Cerrada") {
+                            aplicarCierreEnVista(evData.Id);
+                        }
+                    } catch (e) {
+                        console.log("Mensaje WS recibido:", event.data);
+                    }
+                };
+
+                ws.onclose = function () {
+                    badge.className = "badge bg-warning text-dark fs-6 py-2 px-3";
+                    badge.innerText = "🟠 Desconectado. Reconectando a PieHost...";
+                    isReconnecting = true;
+                    setTimeout(conectarWebSocket, 3000);
+                };
+
+                ws.onerror = function (err) {
+                    console.error("Error WebSocket PieHost:", err);
+                    ws.close();
+                };
+            } catch (err) {
+                console.error("Excepción al iniciar WebSocket:", err);
+            }
+        }
+
+        function aplicarCierreEnVista(incidenciaId) {
+            const fila = document.getElementById("fila-incidencia-" + incidenciaId);
+            if (fila) {
+                // Notificación visual inmediata
+                mostrarNotificacion(`Incidencia #${incidenciaId} fue cerrada en tiempo real.`);
+
+                // Animación de remoción suave
+                fila.style.transition = "all 0.5s ease";
+                fila.style.backgroundColor = "#ffc7c7";
+                setTimeout(() => {
+                    fila.remove();
+                    verificarTablaVacia();
+                }, 600);
+            }
+        }
+
+        function mostrarNotificacion(mensaje) {
+            const alertDiv = document.createElement("div");
+            alertDiv.className = "alert alert-warning alert-dismissible fade show shadow-sm";
+            alertDiv.role = "alert";
+            alertDiv.innerHTML = `<strong>⚡ Tiempo Real (PieHost):</strong> ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+            notifArea.prepend(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 6000);
+        }
+
+        function verificarTablaVacia() {
+            const tbody = document.getElementById("tabla-incidencias-body");
+            const alertVacia = document.getElementById("no-incidencias-alert");
+            const tablaContenedor = document.getElementById("tabla-contenedor");
+
+            if (!tbody || tbody.children.length === 0) {
+                if (alertVacia) alertVacia.classList.remove("d-none");
+                if (tablaContenedor) tablaContenedor.classList.add("d-none");
+            }
+        }
+
+        function consultarEstadoVigente() {
+            fetch('/Operaciones/EstadoVigente')
+                .then(res => res.json())
+                .then(data => {
+                    renderizarTabla(data);
+                    mostrarNotificacion("Sincronización de estado vigente completada.");
+                })
+                .catch(err => console.error("Error al consultar estado vigente:", err));
+        }
+
+        function renderizarTabla(incidencias) {
+            const tbody = document.getElementById("tabla-incidencias-body");
+            const alertVacia = document.getElementById("no-incidencias-alert");
+            const tablaContenedor = document.getElementById("tabla-contenedor");
+
+            if (!incidencias || incidencias.length === 0) {
+                tbody.innerHTML = "";
+                alertVacia.classList.remove("d-none");
+                tablaContenedor.classList.add("d-none");
+                return;
+            }
+
+            alertVacia.classList.add("d-none");
+            tablaContenedor.classList.remove("d-none");
+
+            let html = "";
+            incidencias.forEach(i => {
+                let badgePrioridad = i.prioridad === "Alta" 
+                    ? '<span class="badge bg-danger">Alta</span>'
+                    : (i.prioridad === "Media" ? '<span class="badge bg-warning text-dark">Media</span>' : '<span class="badge bg-info text-dark">Baja</span>');
+
+                html += `
+                    <tr id="fila-incidencia-${i.id}">
+                        <td><strong>#${i.id}</strong></td>
+                        <td>${i.estacion}</td>
+                        <td>${i.descripcion}</td>
+                        <td>${badgePrioridad}</td>
+                        <td><span class="badge bg-success" id="estado-badge-${i.id}">${i.estado}</span></td>
+                        <td>
+                            <form action="/Operaciones/Cerrar/${i.id}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Seguro que deseas cerrar la incidencia #${i.id}?');">
+                                    Cerrar Incidencia
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        conectarWebSocket();
+    })();
+</script>
+}
